@@ -1,4 +1,4 @@
--- Queries for displaying each table
+-- Queries here are references for the functions in ../lib/helpers.js
 
 -- departments
 SELECT * 
@@ -17,4 +17,15 @@ JOIN departments ON roles.department_id = departments.id
 LEFT JOIN employees m ON e.manager_id = m.id
 ORDER BY e.id;
 
+-- listing managers
+SELECT CONCAT(employees.first_name, " ", employees.last_name) AS manager
+FROM employees
+WHERE manager_id IS NULL;
 
+-- listing departments
+SELECT departments.name AS department
+FROM departments;
+
+-- listing roles
+SELECT roles.title AS role
+FROM roles;
