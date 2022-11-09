@@ -1,7 +1,9 @@
+// Importing node packages
 const inquirer = require('inquirer');
 const mysql = require('mysql2');
 const cTable = require('console.table');
 
+// Creating a connection to the database
 const db = mysql.createConnection(
     {
         host: 'localhost',
@@ -12,12 +14,7 @@ const db = mysql.createConnection(
     console.log('Connected to the company_db database.')
 );
 
-// Defining global variables to later store and update arrays of information from the database
-var departments;
-var roles;
-var employees;
-var managers;
-
+// Choices the user will be prompted with initially and after each action
 const initialQuestion = {
         name: 'choice',
         type: 'list',
@@ -25,13 +22,14 @@ const initialQuestion = {
         choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', `Update an employee's role`, 'Quit application']
 };
 
+// Question the user will be prompted with when adding a new department
 const addDepartmentQuestion = {
         name: 'name',
         type: 'input',
         message: 'What is the name of the department you would like to add? '
 };
 
-
+// Questions the user will be prompted with when adding a new role
 const addRoleQuestions = (departments) => [
     {
         name: 'title',
@@ -51,6 +49,7 @@ const addRoleQuestions = (departments) => [
     }
 ];
 
+// Questions the user will be prompted with when adding a new employee
 const addEmployeeQuestions = (roles, managers) => [
     {
         name: 'first_name',
@@ -76,6 +75,7 @@ const addEmployeeQuestions = (roles, managers) => [
     }
 ];
 
+// Questions the user will be prompted with when updating an employee's role
 const updateEmployeeRoleQuestions = (employees, roles) => [
     {
         name: 'employee',
@@ -98,8 +98,6 @@ function getDepartments() {
             console.log(err);
           }
         departments = [].concat(...results);
-        // This may not be necessary - if adding roles works, remove this
-        return departments;
     });
 };
 
@@ -110,7 +108,7 @@ function getRoles() {
             console.log(err);
         }
         roles = [].concat(...results);
-    })
+    });
 };
 
 // Populates the 'employees' array from the database, to be used as choices for inquirer
@@ -120,7 +118,7 @@ function getEmployees() {
             console.log(err);
         }
         employees = [].concat(...results);
-    })
+    });
 };
 
 // Populates the 'managers' array from the database, to be used as choices for inquirer
@@ -142,7 +140,7 @@ async function listDepartments() {
         console.log('');
         console.table(results);
         loadQuestions();
-    })
+    });
 };
 
 // Lists out all roles and their parameters in the console using console.table
@@ -154,7 +152,7 @@ function listRoles() {
         console.log('');
         console.table(results);
         loadQuestions();
-    })
+    });
 };
 
 // Lists out all employees and their parameters in the console using console.table
@@ -171,23 +169,17 @@ function listEmployees() {
         console.log('');
         console.table(results);
         loadQuestions();
-    })
+    });
 };
 
-function Main() {
-    getDepartments();
-    getRoles();
-    getEmployees();
-    getManagers();
-    loadQuestions();
-};
-
+// Initial choices to be loaded by inquirer upon initializing the app
 function loadQuestions() {
     inquirer
         .prompt(initialQuestion)
         .then(responseHandler);
 };
 
+// Handles the various responses the user can provide 
 function responseHandler(response) {
     if (response.choice === 'View all departments') {
         listDepartments();
@@ -208,66 +200,73 @@ function responseHandler(response) {
         addEmployee();
     }
     if (response.choice === `Update an employee's role`) {
-        updateEmployee();
+        updateEmployeeRole();
     }
     if (response.choice === `Quit application`) {
-        return;
+        process.exit();
     }
 };
 
+// When 'Add a department' is chosen, prompts the user for information and uses that information to create a new department
 function addDepartment() {
     inquirer
         .prompt(addDepartmentQuestion)
         .then(createDepartment);
 };
 
-
+// Creates a new department in the database based on user input
 function createDepartment(response) {
     db.query(`INSERT INTO departments (name) VALUES ('${response.name}')`, (err, response) => {
         if (err) {
             console.log(err);
         }
+        console.log(`Department successfully created.`);
+        console.log('');
         getDepartments();
         loadQuestions();
     });
 };
 
-
-
+// When 'Add a role' is chosen, prompts the user for information and uses that information to create a new role
 function addRole() {
     inquirer
         .prompt(addRoleQuestions(departments))
         .then(createRoleHandler);
 };
 
+// Takes the department name specified by the user and returns the id for that department, in addition to the rest of the response
 function createRoleHandler(response) {
     const { title, salary, department} = response;
-    // Adding a check to see which department id corresponds to the selected department
     db.query(`SELECT departments.id FROM departments WHERE departments.name = '${department}'`, (err, response) => {
         if (err) {
             console.log(err);
         }
         const department_id = response[0].id;
         createRole(title, salary, department_id);
-    })
+    });
 };
 
+// Creates a new role in the database based on user input
 function createRole(title, salary, department_id) {
     db.query(`INSERT INTO roles (title, salary, department_id) VALUES ('${title}', ${salary}, ${department_id})`, (err, response) => {
         if (err) {
             console.log(err);
         }
+        console.log(`Role successfully created.`);
+        console.log('');
         getRoles();
         loadQuestions();
     });
 };
 
+// When 'Add an employee' is chosen, prompts the user for information and uses that information to create a new employee
 function addEmployee() {
     inquirer
         .prompt(addEmployeeQuestions(roles, managers))
         .then(createEmployeeHandler);
-}
+};
 
+// Takes the role name specified by the user and returns the id for that role, in addition to the rest of the response
 function createEmployeeHandler(response) {
     const { first_name, last_name, role, manager } = response;
     db.query(`SELECT roles.id FROM roles WHERE roles.title = '${role}'`, (err, response) => {
@@ -276,33 +275,76 @@ function createEmployeeHandler(response) {
         }
         const role_id = response[0].id;
         newEmployeeManagerhandler(first_name, last_name, role_id, manager);
-    })
-}
+    });
+};
 
+// Takes the manager's name specified by the user and returns the id for that manager, in addition to the rest of the response
 function newEmployeeManagerhandler(first_name, last_name, role_id, manager) {
     db.query(`SELECT employees.id FROM employees WHERE CONCAT(employees.first_name, " ", employees.last_name) = '${manager}'`, (err, response) => {
         if (err) {
             console.log(err);
         }
         const manager_id = response[0].id;
-        console.log(manager_id);
         createEmployee(first_name, last_name, role_id, manager_id);
-    })
-}
+    });
+};
 
+// Creates a new employee in the database based on user input
 function createEmployee(first_name, last_name, role_id, manager_id) {
     db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ('${first_name}', '${last_name}', ${role_id}, ${manager_id})`, (err, response) => {
         if (err) {
             console.log(err);
         }
+        console.log(`Employee successfully added.`);
+        console.log('');
         getEmployees();
         loadQuestions();
     });
-}
+};
 
+// When 'Update an employee's role' is chosen, prompts the user for information and uses that information to update the employee's role
+function updateEmployeeRole() {
+    inquirer
+        .prompt(updateEmployeeRoleQuestions(employees, roles))
+        .then(updateEmployeeRoleHandler1);
+};
 
+// Takes the role specified by the user and returns the id for that role, in addition to the rest of the response
+function updateEmployeeRoleHandler1(response) {
+    const { employee, role } = response;
+    db.query(`SELECT roles.id FROM roles WHERE roles.title = '${role}'`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        const role_id = response[0].id;
+        updateEmployeeRoleHandler2(employee, role_id);
+    });
+};
 
-Main();
+// Takes the employee specified by the user and the role_id returned from the previous function and updates the specified employee's role
+function updateEmployeeRoleHandler2(employee, role_id) {
+    db.query(`UPDATE employees SET employees.role_id = ${role_id} WHERE CONCAT(employees.first_name, " ", employees.last_name) = '${employee}'`, (err, response) => {
+        if (err) {
+            console.log(err)
+        }
+        console.log(`Employee's role successfully updated.`);
+        console.log('');
+        getEmployees();
+        loadQuestions();
+    });
+};
+
+// Initializes the application
+function Init() {
+    getDepartments();
+    getRoles();
+    getEmployees();
+    getManagers();
+    loadQuestions();
+};
+
+// Initializes the application
+Init();
 
 
 

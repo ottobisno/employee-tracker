@@ -1,38 +1,38 @@
--- Queries here are references for the functions in ../lib/helpers.js
+-- Queries here are references for the functions used in ../server.js
 
 -- departments table
--- SELECT * 
--- FROM departments;
+SELECT * 
+FROM departments;
 
--- -- roles table
--- SELECT roles.id, roles.title, departments.name AS department, roles.salary
--- FROM roles
--- JOIN departments ON roles.department_id = departments.id;
+-- roles table
+SELECT roles.id, roles.title, departments.name AS department, roles.salary
+FROM roles
+JOIN departments ON roles.department_id = departments.id;
 
--- -- employees table
--- SELECT e.id, e.first_name, e.last_name, roles.title AS title, departments.name AS department, roles.salary, CONCAT(m.first_name, " ", m.last_name) AS manager
--- FROM employees e
--- JOIN roles ON roles.id = role_id
--- JOIN departments ON roles.department_id = departments.id
--- LEFT JOIN employees m ON e.manager_id = m.id
--- ORDER BY e.id;
+-- employees table
+SELECT e.id, e.first_name, e.last_name, roles.title AS title, departments.name AS department, roles.salary, CONCAT(m.first_name, " ", m.last_name) AS manager
+FROM employees e
+JOIN roles ON roles.id = role_id
+JOIN departments ON roles.department_id = departments.id
+LEFT JOIN employees m ON e.manager_id = m.id
+ORDER BY e.id;
 
--- -- listing departments
--- SELECT departments.name AS department
--- FROM departments;
+-- listing departments
+SELECT departments.name AS department
+FROM departments;
 
--- -- listing roles
--- SELECT roles.title AS role
--- FROM roles;
+-- listing roles
+SELECT roles.title AS role
+FROM roles;
 
--- -- listing employees
--- SELECT CONCAT(employees.first_name, " ", employees.last_name) AS employees
--- FROM employees;
+-- listing employees
+SELECT CONCAT(employees.first_name, " ", employees.last_name) AS employees
+FROM employees;
 
--- -- listing managers
--- SELECT CONCAT(employees.first_name, " ", employees.last_name) AS manager
--- FROM employees
--- WHERE manager_id IS NULL;
+-- listing managers
+SELECT CONCAT(employees.first_name, " ", employees.last_name) AS manager
+FROM employees
+WHERE manager_id IS NULL;
 
 -- selecting the department_id based on the department name
 SELECT departments.id 
@@ -45,3 +45,8 @@ FROM roles WHERE roles.title = "Lead Engineer";
 -- selecting the role_id based on the role name
 SELECT employees.manager_id
 FROM employees WHERE CONCAT(employees.first_name, " ", employees.last_name) = "Bill Benson";
+
+-- updating an employee's role
+UPDATE employees
+SET employees.role_id = 1
+WHERE employees.first_name = "Bill";
