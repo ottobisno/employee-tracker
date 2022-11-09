@@ -12,6 +12,11 @@ const db = mysql.createConnection(
     console.log('Connected to the company_db database.')
 );
 
+// Defining global variables to later store and update arrays of information from the database
+var departments;
+var roles;
+var managers;
+
 const initialQuestion = {
         name: 'choice',
         type: 'list',
@@ -19,13 +24,14 @@ const initialQuestion = {
         choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', `Update an employee's role`]
 };
 
-const newDepartmentQuestion = {
+const addDepartmentQuestion = {
         name: 'name',
         type: 'input',
         message: 'What is the name of the department you would like to add? '
 };
 
-const newRoleQuestions = [
+
+const addRoleQuestions = [
     {
         name: 'title',
         type: 'input',
@@ -41,11 +47,11 @@ const newRoleQuestions = [
         type: 'list',
         message: 'What is the department of the role you would like to add? ',
         // Update this so it reflects what's in the db, once you make sure the app itself is working first
-        choices: ['Sales', 'Engineering', 'Finance', 'Legal']
+        choices: departments
     }
 ];
 
-const newEmployeeQuestions = [
+const addEmployeeQuestions = [
     {
         name: 'first_name',
         type: 'input',
@@ -87,46 +93,116 @@ const updateEmployeeRoleQuestions = [
     }
 ];
 
-function Init() {
-    inquirer
-        .prompt(updateEmployeeRoleQuestions)
-};
 
 
+// Populates the 'departments' array from the database, to be used as choices for inquirer
 function getDepartments() {
     db.query({ sql: `SELECT departments.name AS department FROM departments`, rowsAsArray: true}, (err, results) => {
         if (err) {
             console.log(err);
           }
-        let departments = [].concat(...results);
-        console.log(departments);
+        departments = [].concat(...results);
     });
 };
-getDepartments();
 
+// Populates the 'managers' array from the database, to be used as choices for inquirer
 function getManagers() {
     db.query({ sql: `SELECT CONCAT(employees.first_name, " ", employees.last_name) AS manager FROM employees WHERE manager_id IS NULL`, rowsAsArray: true }, (err, results) => {
         if (err) {
             console.log(err);
           }
-        let managers = [].concat(...results);
-        console.log(managers);
+        managers = [].concat(...results);
     });
 };
-getManagers();
 
+// Populates the 'roles' array from the database, to be used as choices for inquirer
 function getRoles() {
     db.query({ sql: 'SELECT roles.title AS role FROM roles', rowsAsArray: true }, (err, results) => {
         if (err) {
             console.log(err);
         }
-        let roles = [].concat(...results);
-        console.log(roles);
+        roles = [].concat(...results);
     })
 };
-getRoles();
+
+// Lists out all employees in the console using console.table
+async function listDepartments() {
+    db.query('SELECT * FROM departments', (err, results) => {
+        if (err) {
+            console.log(err);
+        }
+        console.log('');
+        console.table(results);
+        loadQuestions();
+    })
+};
+
+// Lists out all roles and their parameters in the console using console.table
+function listRoles() {
+    db.query('SELECT roles.id, roles.title, departments.name AS department, roles.salary FROM roles JOIN departments ON roles.department_id = departments.id', (err, results) => {
+        if (err) {
+            console.log(err);
+        }
+        console.log('');
+        console.table(results);
+        loadQuestions();
+    })
+};
+
+// Lists out all employees and their parameters in the console using console.table
+function listEmployees() {
+    db.query(`SELECT e.id, e.first_name, e.last_name, roles.title AS title, departments.name AS department, roles.salary, CONCAT(m.first_name, " ", m.last_name) AS manager
+    FROM employees e
+    JOIN roles ON roles.id = role_id
+    JOIN departments ON roles.department_id = departments.id
+    LEFT JOIN employees m ON e.manager_id = m.id
+    ORDER BY e.id;`, (err, results) => {
+        if (err) {
+            console.log(err);
+        }
+        console.log('');
+        console.table(results);
+        loadQuestions();
+    })
+};
+
+function Main() {
+    getDepartments();
+    getRoles();
+    getManagers();
+    loadQuestions();
+};
+
+
+function loadQuestions() {
+    inquirer
+        .prompt(initialQuestion)
+        .then(responseHandler);
+};
 
 
 
 
-// Init();
+function responseHandler(response) {
+    if (response.choice === 'View all departments') {
+        listDepartments();
+    }
+    if (response.choice === 'View all roles') {
+        listRoles();
+    }
+    if (response.choice === 'View all employees') {
+        listEmployees();
+    }
+    return
+};
+
+
+
+Main();
+
+
+
+
+
+
+
