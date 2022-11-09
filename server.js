@@ -15,13 +15,14 @@ const db = mysql.createConnection(
 // Defining global variables to later store and update arrays of information from the database
 var departments;
 var roles;
+var employees;
 var managers;
 
 const initialQuestion = {
         name: 'choice',
         type: 'list',
         message: 'What would you like to do? ',
-        choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', `Update an employee's role`]
+        choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', `Update an employee's role`, 'Quit application']
 };
 
 const addDepartmentQuestion = {
@@ -31,7 +32,7 @@ const addDepartmentQuestion = {
 };
 
 
-const addRoleQuestions = [
+const addRoleQuestions = (departments) => [
     {
         name: 'title',
         type: 'input',
@@ -46,12 +47,11 @@ const addRoleQuestions = [
         name: 'department',
         type: 'list',
         message: 'What is the department of the role you would like to add? ',
-        // Update this so it reflects what's in the db, once you make sure the app itself is working first
         choices: departments
     }
 ];
 
-const addEmployeeQuestions = [
+const addEmployeeQuestions = (roles, managers) => [
     {
         name: 'first_name',
         type: 'input',
@@ -63,37 +63,33 @@ const addEmployeeQuestions = [
         message: 'What is the last name of the employee you would like to add? ' 
     },
     {
-        // Update this so it reflects what's in the db, once you make sure the app itself is working first
         name: 'role',
-        type: 'input',
-        message: 'What is the role of the employee you would like to add? ' 
+        type: 'list',
+        message: 'What is the role of the employee you would like to add? ', 
+        choices: roles
     },
     {
-        // Update this so it reflects what's in the db, once you make sure the app itself is working first
         name: 'manager',
-        type: 'input',
-        message: `What is the manager's name of the employee you would like to add? ` 
+        type: 'list',
+        message: `What is the manager's name of the employee you would like to add? `,
+        choices: managers
     }
 ];
 
-const updateEmployeeRoleQuestions = [
+const updateEmployeeRoleQuestions = (employees, roles) => [
     {
         name: 'employee',
         type: 'list',
         message: `Which employee's role would you like to update? `,
-        // Update this so it reflects what's in the db, once you make sure the app itself is working first
-        choices: []
+        choices: employees
     },
     {
         name: 'role',
         type: 'list',
         message: `Which role would you like to assign to the selected employee? `,
-        // Update this so it reflects what's in the db, once you make sure the app itself is working first
-        choices: []
+        choices: roles
     }
 ];
-
-
 
 // Populates the 'departments' array from the database, to be used as choices for inquirer
 function getDepartments() {
@@ -102,16 +98,8 @@ function getDepartments() {
             console.log(err);
           }
         departments = [].concat(...results);
-    });
-};
-
-// Populates the 'managers' array from the database, to be used as choices for inquirer
-function getManagers() {
-    db.query({ sql: `SELECT CONCAT(employees.first_name, " ", employees.last_name) AS manager FROM employees WHERE manager_id IS NULL`, rowsAsArray: true }, (err, results) => {
-        if (err) {
-            console.log(err);
-          }
-        managers = [].concat(...results);
+        // This may not be necessary - if adding roles works, remove this
+        return departments;
     });
 };
 
@@ -123,6 +111,26 @@ function getRoles() {
         }
         roles = [].concat(...results);
     })
+};
+
+// Populates the 'employees' array from the database, to be used as choices for inquirer
+function getEmployees() {
+    db.query({ sql: 'SELECT CONCAT(employees.first_name, " ", employees.last_name) AS employees FROM employees', rowsAsArray: true }, (err, results) => {
+        if (err) {
+            console.log(err);
+        }
+        employees = [].concat(...results);
+    })
+};
+
+// Populates the 'managers' array from the database, to be used as choices for inquirer
+function getManagers() {
+    db.query({ sql: `SELECT CONCAT(employees.first_name, " ", employees.last_name) AS manager FROM employees WHERE manager_id IS NULL`, rowsAsArray: true }, (err, results) => {
+        if (err) {
+            console.log(err);
+          }
+        managers = [].concat(...results);
+    });
 };
 
 // Lists out all employees in the console using console.table
@@ -169,19 +177,16 @@ function listEmployees() {
 function Main() {
     getDepartments();
     getRoles();
+    getEmployees();
     getManagers();
     loadQuestions();
 };
-
 
 function loadQuestions() {
     inquirer
         .prompt(initialQuestion)
         .then(responseHandler);
 };
-
-
-
 
 function responseHandler(response) {
     if (response.choice === 'View all departments') {
@@ -193,12 +198,84 @@ function responseHandler(response) {
     if (response.choice === 'View all employees') {
         listEmployees();
     }
-    return
+    if (response.choice === 'Add a department') {
+        addDepartment();
+    }
+    if (response.choice === 'Add a role') {
+        addRole();
+    }
+    if (response.choice === 'Add an employee') {
+        addEmployee();
+    }
+    if (response.choice === `Update an employee's role`) {
+        updateEmployee();
+    }
+    if (response.choice === `Quit application`) {
+        return;
+    }
+};
+
+function addDepartment() {
+    inquirer
+        .prompt(addDepartmentQuestion)
+        .then(createDepartment);
 };
 
 
+function createDepartment(response) {
+    db.query(`INSERT INTO departments (name) VALUES ('${response.name}')`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        getDepartments();
+        loadQuestions();
+    });
+};
+
+var department_id;
+// var title;
+// var salary;
+
+// async function addRole() {
+//     const responses = await inquirer.prompt(addRoleQuestions(departments));
+//     const responses2 = await createRole(responses);
+//     test(responses2, department_id);
+// };
+
+function addRole() {
+    inquirer
+        .prompt(addRoleQuestions(departments))
+        .then(createRoleHandler)
+};
+
+function createRoleHandler(response) {
+    // Adding a check to see which department id corresponds to the selected department
+    const title = response.title;
+    const salary = response.salary;
+    db.query(`SELECT departments.id FROM departments WHERE departments.name = '${response.department}'`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        department_id = response[0].id;
+        const newRoleArr = [title, salary, department_id];
+        createRole(newRoleArr);
+    })
+
+    
+};
+
+function createRole(arr) {
+    db.query(`INSERT INTO roles (title, salary, department_id) VALUES ('${arr[0]}', ${arr[1]}, ${arr[2]})`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        getRoles();
+        loadQuestions();
+    });
+}
 
 Main();
+
 
 
 
