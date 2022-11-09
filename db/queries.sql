@@ -36,4 +36,12 @@
 
 -- selecting the department_id based on the department name
 SELECT departments.id 
-FROM departments WHERE departments.name = "Sales"
+FROM departments WHERE departments.name = "Sales";
+
+-- selecting the role_id based on the role name
+SELECT roles.id 
+FROM roles WHERE roles.title = "Lead Engineer";
+
+-- selecting the role_id based on the role name
+SELECT employees.manager_id
+FROM employees WHERE CONCAT(employees.first_name, " ", employees.last_name) = "Bill Benson";

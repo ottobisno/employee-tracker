@@ -232,50 +232,77 @@ function createDepartment(response) {
     });
 };
 
-var department_id;
-// var title;
-// var salary;
 
-// async function addRole() {
-//     const responses = await inquirer.prompt(addRoleQuestions(departments));
-//     const responses2 = await createRole(responses);
-//     test(responses2, department_id);
-// };
 
 function addRole() {
     inquirer
         .prompt(addRoleQuestions(departments))
-        .then(createRoleHandler)
+        .then(createRoleHandler);
 };
 
 function createRoleHandler(response) {
+    const { title, salary, department} = response;
     // Adding a check to see which department id corresponds to the selected department
-    const title = response.title;
-    const salary = response.salary;
-    db.query(`SELECT departments.id FROM departments WHERE departments.name = '${response.department}'`, (err, response) => {
+    db.query(`SELECT departments.id FROM departments WHERE departments.name = '${department}'`, (err, response) => {
         if (err) {
             console.log(err);
         }
-        department_id = response[0].id;
-        const newRoleArr = [title, salary, department_id];
-        createRole(newRoleArr);
+        const department_id = response[0].id;
+        createRole(title, salary, department_id);
     })
-
-    
 };
 
-function createRole(arr) {
-    db.query(`INSERT INTO roles (title, salary, department_id) VALUES ('${arr[0]}', ${arr[1]}, ${arr[2]})`, (err, response) => {
+function createRole(title, salary, department_id) {
+    db.query(`INSERT INTO roles (title, salary, department_id) VALUES ('${title}', ${salary}, ${department_id})`, (err, response) => {
         if (err) {
             console.log(err);
         }
         getRoles();
         loadQuestions();
     });
+};
+
+function addEmployee() {
+    inquirer
+        .prompt(addEmployeeQuestions(roles, managers))
+        .then(createEmployeeHandler);
 }
 
-Main();
+function createEmployeeHandler(response) {
+    const { first_name, last_name, role, manager } = response;
+    db.query(`SELECT roles.id FROM roles WHERE roles.title = '${role}'`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        const role_id = response[0].id;
+        newEmployeeManagerhandler(first_name, last_name, role_id, manager);
+    })
+}
 
+function newEmployeeManagerhandler(first_name, last_name, role_id, manager) {
+    db.query(`SELECT employees.id FROM employees WHERE CONCAT(employees.first_name, " ", employees.last_name) = '${manager}'`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        const manager_id = response[0].id;
+        console.log(manager_id);
+        createEmployee(first_name, last_name, role_id, manager_id);
+    })
+}
+
+function createEmployee(first_name, last_name, role_id, manager_id) {
+    db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ('${first_name}', '${last_name}', ${role_id}, ${manager_id})`, (err, response) => {
+        if (err) {
+            console.log(err);
+        }
+        getEmployees();
+        loadQuestions();
+    });
+}
+
+
+
+Main();
 
 
 
