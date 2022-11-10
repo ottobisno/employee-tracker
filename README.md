@@ -13,7 +13,9 @@ This application allows the user to view and update information from their compa
 
 ## Future Improvements
 
-I would like to better organize the files associated with this project. Specifically, consolidate the queries used into their own js file. 
+-Better organize the files associated with this project. Specifically, consolidate the queries used into their own js file.<br>
+-Use fewer functions by properly chaining promises together. 
+
 
 ## Demonstration
 
